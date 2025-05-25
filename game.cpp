@@ -2,6 +2,10 @@
  
 bool xturn = true;
 bool oturn = false;
+bool xwin = false;
+bool owin = false;
+
+int countTurn = 0;
 
 char board[7][14] = {
     "~~~~~~~~~~~~~",
@@ -13,33 +17,69 @@ char board[7][14] = {
     "~~~~~~~~~~~~~"
 };
 
-void play(int cordy, int cordx){
-    if(xturn){
-        mvaddch(cordy, cordx, 'X');
+
+
+// winning combinations for 'X' or 'O'
+bool checkMatch(char turn){
+    if(board[1][2] == turn && board[1][6] == turn && board[1][10] == turn) return true;
+    else if(board[3][2] == turn && board[3][6] == turn && board[3][10] == turn) return true;
+    else if(board[5][2] == turn && board[5][6] == turn && board[5][10] == turn) return true;
+    else if(board[1][10] == turn && board[3][10] == turn && board[5][10] == turn) return true;
+    else if(board[1][6] == turn && board[3][6] == turn && board[5][6] == turn) return true;
+    else if(board[1][2] == turn && board[3][2] == turn && board[5][2] == turn) return true;
+    else if(board[1][2] == turn && board[3][6] == turn && board[5][10] == turn) return true;
+    else if(board[1][10] == turn && board[3][6] == turn && board[5][2] == turn) return true;
+    else return false;
+}
+
+
+//to fill boxes with "X" or  "O"
+bool fillBoxes(int cordy, int cordx, char turn, bool isSelect){
+    if(cordy == 8 && cordx == 37 && isSelect && board[1][2] == ' ')  board[1][2] = turn;
+    else if(cordy == 8 && cordx == 41 && isSelect && board[1][6] == ' ')  board[1][6] = turn;
+    else if(cordy == 8 && cordx == 45 && isSelect && board[1][10] == ' ')  board[1][10] = turn;
+    else if(cordy == 10 && cordx == 37 && isSelect && board[3][2] == ' ')  board[3][2] = turn;
+    else if(cordy == 10 && cordx == 41 && isSelect && board[3][6] == ' ')  board[3][6] = turn;
+    else if(cordy == 10 && cordx == 45 && isSelect && board[3][10] == ' ')  board[3][10] = turn;
+    else if(cordy == 12 && cordx == 37 && isSelect && board[5][2] == ' ')  board[5][2] = turn;
+    else if(cordy == 12 && cordx == 41 && isSelect && board[5][6] == ' ')  board[5][6] = turn;
+    else if(cordy == 12 && cordx == 45 && isSelect && board[5][10] == ' ')  board[5][10] = turn;
+    else {
+        mvprintw(4,10, "This board is already filled!");
+        return false;
+    }
+    mvprintw(4,10, "                               ");
+    return true;
+}
+
+void play(int cordy, int cordx, bool& isSelect){
+    char X = 'X';
+    char O = 'O';
+    if(xturn && isSelect && fillBoxes(cordy, cordx, X, isSelect)){
+        mvaddch(cordy, cordx, X);
+        if (checkMatch(X)) xwin = true;
         xturn = false;
         oturn = true;
-    }else if(oturn){
-        mvaddch(cordy, cordx, 'O');
+    }else if(oturn && isSelect && fillBoxes(cordy, cordx, O, isSelect)){
+        mvaddch(cordy, cordx, O);
+        if (checkMatch(O)) owin = true;
         oturn = false;
         xturn = true;
-    }
+    } 
+    isSelect = false;
+    countTurn++;
     refresh();
     return;
 }
-void fillBoxes(){
-    
-    return;
-}
+
 
 void displayTurn(int y, int x, int cordy, int cordx){
     attron(A_BOLD);
     if (xturn){
-        mvprintw(y,x,"TURN: X, X= %d, Y=%d",cordx,cordy);
+        mvprintw(y,x,"PLAYER TURN: X");
         
     }else if(oturn){
-        mvprintw(y,x,"TURN: O, X= %d, Y=%d",cordx,cordy);
-    }else{
-        mvprintw(y-2,x+5, "This box is already filled!");
+        mvprintw(y,x,"PLAYER TURN: O");
     }
     attroff(A_BOLD);
     refresh();
@@ -49,8 +89,10 @@ void displayTurn(int y, int x, int cordy, int cordx){
 void playTurn(int& cordy, int& cordx, int borderUp, int borderDown, int borderLeft, int borderRight){
     move(cordy, cordx);
     int c = getch();
+    bool isSelect = false;
     if(c == KEY_ENTER || c == 10){
-        play(cordy, cordx);
+        isSelect = true;
+        play(cordy, cordx, isSelect);
         return;
     }
     if(c == KEY_UP && cordy > borderUp ) cordy-= 02;
@@ -89,17 +131,30 @@ int main(){
     borderLeft = (x/2)-3;
     borderRight = (x/2)+2;
     borderDown = (y/2);
-    //curs_set(0);
+    
    
     printBoard((y/2)-5,(x/2)-5);
     while(true){
+        if(countTurn == 9){
+            mvprintw (5,30, "Game Draw");
+            break;
+        }
         displayTurn((y/2)-10, (x/2)-10, cordy, cordx);
         playTurn(cordy, cordx, borderUp, borderDown, borderLeft, borderRight);
-        mvprintw(0,0,"Y=%d, X=%d", cordy, cordx);
-        
+        if(xwin){
+            mvprintw (5,30, "Player X won");
+            xwin = false;
+            break;
+        }
+        else if (owin){
+            mvprintw (5,30, "Player O won");
+            owin = false;
+            break;
+        }
     }
+    curs_set(0);
     getch();
-    refresh;
+    refresh();
     endwin();
     return 0;
 }
