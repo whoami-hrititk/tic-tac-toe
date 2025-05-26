@@ -1,7 +1,7 @@
-🕹️ Tic-Tac-Toe (C++ with ncurses)
+# 🕹 Tic-Tac-Toe (C++ with ncurses)
 
 This is a dynamic Tic-Tac-Toe game built in C++ using the ncurses library. The game runs in the terminal and features an interactive grid, real-time cursor control, and a clean interface—all rendered with ncurses.
-🎯 Features
+## 🎯 Features
 
 Interactive 3x3 grid gameplay
 
@@ -15,7 +15,7 @@ Real-time board updates and win detection
 
 Dynamic UI—resizes gracefully in most terminal environments
 
-🧰 Requirements
+## 🧰 Requirements
 
 C++ compiler (e.g. g++)
 
@@ -25,7 +25,7 @@ On Debian/Ubuntu-based systems:
 
     sudo apt-get install libncurses5-dev libncursesw5-dev
 
-⚙️ Build & Run
+## ⚙️ Build & Run
 
 Clone the repository:
 
@@ -40,7 +40,7 @@ Run it:
 
     ./tictactoe
 
-🎮 Controls
+## 🎮 Controls
 
 Arrow Keys – Move the cursor
 
@@ -48,7 +48,7 @@ Enter or Space – Place X or O
 
 q – Quit the game
 
-📦 File Structure
+## 📦 File Structure
 
 tic-tac-toe-ncurses/
 ├── main.cpp          # Main game logic
