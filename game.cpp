@@ -4,7 +4,8 @@ bool xturn = true;
 bool oturn = false;
 bool xwin = false;
 bool owin = false;
-
+bool optSelect = false;
+bool gameStarted = false;
 int countTurn = 0;
 
 char board[7][14] = {
@@ -15,6 +16,20 @@ char board[7][14] = {
     "~~~~~~~~~~~~~",
     "|   |   |   |",
     "~~~~~~~~~~~~~"
+};
+
+
+char menu[4][13] = {
+    " Start Game ",
+    "Show History",
+    "  Settings  ",
+    "    EXIT    "
+};
+
+char modes[3][13] = {
+    "Multiplayer  ",
+    "Single Player",
+    "Back to Menu "
 };
 
 
@@ -75,19 +90,24 @@ void play(int cordy, int cordx, bool& isSelect){
 
 void displayTurn(int y, int x, int cordy, int cordx){
     attron(A_BOLD);
+    attron(COLOR_PAIR(2));
+    
     if (xturn){
         mvprintw(y,x,"PLAYER TURN: X");
         
     }else if(oturn){
         mvprintw(y,x,"PLAYER TURN: O");
     }
+    attroff(COLOR_PAIR(2));
     attroff(A_BOLD);
     refresh();
     return;
 }
 
 void playTurn(int& cordy, int& cordx, int borderUp, int borderDown, int borderLeft, int borderRight){
+    
     move(cordy, cordx);
+    
     int c = getch();
     bool isSelect = false;
     if(c == KEY_ENTER || c == 10){
@@ -115,13 +135,61 @@ void printBoard(int y, int x){
     return;
 }
 
+void gameMode(int y, int x){
+    for(int i = 0; i<3; i++){
+        for(int j =0; j<12; j++){
+            mvaddch(y+i,x+j, modes[i][j]);
+        }
+    }
+    return;
+}
+
+void showMenu(int y, int x, int opt){
+    for(int i = 0; i<4;i++){
+        for(int j = 0; j < 12; j++){
+            if(i == opt){
+                attron(COLOR_PAIR(1));
+                mvaddch(y+i,x+j, menu[i][j]);
+                attroff(COLOR_PAIR(1));
+            }else{
+                mvaddch(y+i,x+j, menu[i][j]);
+            }
+            
+        }
+    }
+    refresh();
+    return;
+}
+
+void keyMovement( int y, int x, int& opt){
+   
+    
+    int c = getch();
+    if((c == KEY_ENTER || c == 10) && (opt == 0)) {
+        clear();
+        optSelect = true;
+        gameStarted = true;
+        printBoard(y,x);
+        return;
+    }
+    if(c == KEY_DOWN && opt < 3) opt++;
+    else if(c == KEY_UP && opt > 0) opt--;
+
+    showMenu(y, x, opt);
+    return;
+}
+
 int main(){
     int x,y;
     int cordx, cordy;
     int borderUp, borderDown, borderLeft, borderRight;
     initscr();
-
     start_color();
+
+    init_pair(1, COLOR_GREEN, COLOR_YELLOW);
+    init_pair(2, COLOR_GREEN, COLOR_RED);
+    init_pair(3, COLOR_GREEN, COLOR_MAGENTA);
+
     keypad(stdscr, true);
     noecho();
     getmaxyx(stdscr, y, x);
@@ -131,16 +199,25 @@ int main(){
     borderLeft = (x/2)-3;
     borderRight = (x/2)+2;
     borderDown = (y/2);
-    
-   
-    printBoard((y/2)-5,(x/2)-5);
-    while(true){
+    nodelay(stdscr, true);
+    curs_set(0);
+    int opt = 0;
+    while(!optSelect)
+        keyMovement((y/2)-5, (x/2)-5, opt);
+    curs_set(1);
+    nodelay(stdscr, false);
+
+
+    while(gameStarted){
+        attron(COLOR_PAIR(3));
         if(countTurn == 9){
             mvprintw (5,30, "Game Draw");
             break;
         }
+        attroff(COLOR_PAIR(3));
         displayTurn((y/2)-10, (x/2)-10, cordy, cordx);
         playTurn(cordy, cordx, borderUp, borderDown, borderLeft, borderRight);
+        attron(COLOR_PAIR(3));
         if(xwin){
             mvprintw (5,30, "Player X won");
             xwin = false;
@@ -151,6 +228,7 @@ int main(){
             owin = false;
             break;
         }
+        attroff(COLOR_PAIR(3));
     }
     curs_set(0);
     getch();
