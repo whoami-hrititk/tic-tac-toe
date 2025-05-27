@@ -1,4 +1,15 @@
 #include<ncurses.h>
+#include <vector>
+
+struct saveGame{
+    int cordy;
+    int cordx;
+    char turn;
+};
+
+
+std::vector<saveGame> saved;
+
  
 bool xturn = true;
 bool oturn = false;
@@ -6,6 +17,9 @@ bool xwin = false;
 bool owin = false;
 bool optSelect = false;
 bool gameStarted = false;
+bool gamePause = false;
+bool isExit = false;
+
 int countTurn = 0;
 
 char board[7][14] = {
@@ -26,12 +40,19 @@ char menu[4][13] = {
     "    EXIT    "
 };
 
-char modes[3][13] = {
-    "Multiplayer  ",
+char modes[4][14] = {
+    " Multiplayer ",
     "Single Player",
+    "  Time Mode  ",
     "Back to Menu "
 };
 
+char pauseMenu[4][16] ={
+    "    Resume    ",
+    "Start New Game",
+    "   Save Game  ",
+    "   Exit Game  "
+};
 
 
 // winning combinations for 'X' or 'O'
@@ -67,16 +88,33 @@ bool fillBoxes(int cordy, int cordx, char turn, bool isSelect){
     return true;
 }
 
+void showPauseMenu(int y, int x, int opt){
+    for(int i = 0; i<4; i++){
+        for(int j = 0; j<14; j++){
+            if(i == opt){
+                attron(COLOR_PAIR(1));
+                mvaddch(y+i,x+j, pauseMenu[i][j]);
+                attroff(COLOR_PAIR(1));
+            }else
+                mvaddch(y+i,x+j, pauseMenu[i][j]);
+        }
+    }
+    refresh();
+    return;
+}
+
 void play(int cordy, int cordx, bool& isSelect){
     char X = 'X';
     char O = 'O';
     if(xturn && isSelect && fillBoxes(cordy, cordx, X, isSelect)){
         mvaddch(cordy, cordx, X);
+        saved.push_back({cordy, cordx, X});
         if (checkMatch(X)) xwin = true;
         xturn = false;
         oturn = true;
     }else if(oturn && isSelect && fillBoxes(cordy, cordx, O, isSelect)){
         mvaddch(cordy, cordx, O);
+        saved.push_back({cordy, cordx, X});
         if (checkMatch(O)) owin = true;
         oturn = false;
         xturn = true;
@@ -119,6 +157,12 @@ void playTurn(int& cordy, int& cordx, int borderUp, int borderDown, int borderLe
     else if(c == KEY_DOWN && cordy < borderDown) cordy += 2;
     else if(c == KEY_RIGHT && cordx < borderRight ) cordx += 4;
     else if(c == KEY_LEFT && cordx > borderLeft) cordx -= 4;
+
+    if(c == 27){
+        clear();
+        gamePause = true;
+        return;
+    }
     
     return;
 }
@@ -135,12 +179,18 @@ void printBoard(int y, int x){
     return;
 }
 
-void gameMode(int y, int x){
-    for(int i = 0; i<3; i++){
-        for(int j =0; j<12; j++){
-            mvaddch(y+i,x+j, modes[i][j]);
+void gameMode(int y, int x, int opt){
+    for(int i = 0; i<4; i++){
+        for(int j =0; j<13; j++){
+            if(i == opt){
+                attron(COLOR_PAIR(1));
+                mvaddch(y+i,x+j, modes[i][j]);
+                attroff(COLOR_PAIR(1));
+            }else
+                mvaddch(y+i,x+j, modes[i][j]);
         }
     }
+    refresh();
     return;
 }
 
@@ -161,23 +211,82 @@ void showMenu(int y, int x, int opt){
     return;
 }
 
+void persistBoard(){
+    for(auto turns: saved){
+        mvaddch(turns.cordy, turns.cordx, turns.turn);
+    }
+    refresh();
+    return;
+}
+
+
+
 void keyMovement( int y, int x, int& opt){
-   
-    
     int c = getch();
-    if((c == KEY_ENTER || c == 10) && (opt == 0)) {
+
+    //Select key when first menu is displayed and option 1 to be selected.
+    if((c == KEY_ENTER || c == 10) && (opt == 0) && !optSelect) {
         clear();
         optSelect = true;
+        opt = 0;
+        return;
+    }
+
+    //Select key when first menu is displayed and option 4 to be selected.
+    if((c == KEY_ENTER || c == 10) && (opt == 3) && !optSelect) {
+        clear();
+        isExit = true;
+        return;
+    }
+
+    //Select key when game menu is displayed and option 1 to be selected.
+    if((c == KEY_ENTER || c == 10) && (opt == 0) && optSelect){
+        clear();
         gameStarted = true;
+        optSelect = true;
+        opt = 0;
         printBoard(y,x);
         return;
     }
+
+    //Select key when game menu is displayed and option 4 to be selected.
+    if((c == KEY_ENTER || c == 10) && (opt == 3) && optSelect && !gamePause){
+        clear();
+        optSelect = false;
+        opt = 0;
+        return;
+    }
+
+    //Select key when pause menu is displayed and option 4 to be selected.
+    if((c == KEY_ENTER || c == 10) && (opt == 3) && gamePause && gameStarted){
+        clear();
+        gamePause = false;
+        gameStarted = false;
+        opt = 0;
+        return;
+    }
+
+    if((c == KEY_ENTER || c == 10) && opt == 0 && gamePause && gameStarted){
+        clear();
+        gamePause = false;
+        gameStarted = true;
+        opt = 0;
+        printBoard(y,x);
+        persistBoard();
+        return;
+    }
+
+    //Key movement UP and DOWN.
     if(c == KEY_DOWN && opt < 3) opt++;
     else if(c == KEY_UP && opt > 0) opt--;
 
-    showMenu(y, x, opt);
+    //Displays the menus
+    if(!optSelect && !gameStarted) showMenu(y, x, opt);
+    if(optSelect && !gameStarted) gameMode(y, x, opt);
+    if(gamePause && gameStarted) showPauseMenu(y,x, opt);
     return;
 }
+
 
 int main(){
     int x,y;
@@ -199,39 +308,43 @@ int main(){
     borderLeft = (x/2)-3;
     borderRight = (x/2)+2;
     borderDown = (y/2);
-    nodelay(stdscr, true);
-    curs_set(0);
+    
     int opt = 0;
-    while(!optSelect)
-        keyMovement((y/2)-5, (x/2)-5, opt);
-    curs_set(1);
-    nodelay(stdscr, false);
+    while(true){
+        if(isExit) break;
+        nodelay(stdscr, true);
+        curs_set(0);
+            keyMovement((y/2)-5, (x/2)-5, opt);
+        curs_set(1);
+        nodelay(stdscr, false);
 
 
-    while(gameStarted){
-        attron(COLOR_PAIR(3));
-        if(countTurn == 9){
-            mvprintw (5,30, "Game Draw");
-            break;
+        if(gameStarted){
+            attron(COLOR_PAIR(3));
+            if(countTurn == 9){
+                mvprintw (5,30, "Game Draw");
+                break;
+            }
+            if(!gamePause){
+                attroff(COLOR_PAIR(3));
+                displayTurn((y/2)-10, (x/2)-10, cordy, cordx);
+                playTurn(cordy, cordx, borderUp, borderDown, borderLeft, borderRight);
+                attron(COLOR_PAIR(3));
+            }
+            if(xwin){
+                mvprintw (5,30, "Player X won");
+                xwin = false;
+                break;
+            }
+            else if (owin){
+                mvprintw (5,30, "Player O won");
+                owin = false;
+                break;
+            }
+            attroff(COLOR_PAIR(3));
         }
-        attroff(COLOR_PAIR(3));
-        displayTurn((y/2)-10, (x/2)-10, cordy, cordx);
-        playTurn(cordy, cordx, borderUp, borderDown, borderLeft, borderRight);
-        attron(COLOR_PAIR(3));
-        if(xwin){
-            mvprintw (5,30, "Player X won");
-            xwin = false;
-            break;
-        }
-        else if (owin){
-            mvprintw (5,30, "Player O won");
-            owin = false;
-            break;
-        }
-        attroff(COLOR_PAIR(3));
     }
     curs_set(0);
-    getch();
     refresh();
     endwin();
     return 0;
