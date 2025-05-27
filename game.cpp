@@ -82,6 +82,7 @@ bool fillBoxes(int cordy, int cordx, char turn, bool isSelect){
     else if(cordy == 12 && cordx == 45 && isSelect && board[5][10] == ' ')  board[5][10] = turn;
     else {
         mvprintw(4,10, "This board is already filled!");
+        if(countTurn > 0) countTurn--;
         return false;
     }
     mvprintw(4,10, "                               ");
@@ -99,6 +100,7 @@ void showPauseMenu(int y, int x, int opt){
                 mvaddch(y+i,x+j, pauseMenu[i][j]);
         }
     }
+
     refresh();
     return;
 }
@@ -114,7 +116,7 @@ void play(int cordy, int cordx, bool& isSelect){
         oturn = true;
     }else if(oturn && isSelect && fillBoxes(cordy, cordx, O, isSelect)){
         mvaddch(cordy, cordx, O);
-        saved.push_back({cordy, cordx, X});
+        saved.push_back({cordy, cordx, O});
         if (checkMatch(O)) owin = true;
         oturn = false;
         xturn = true;
@@ -233,14 +235,14 @@ void keyMovement( int y, int x, int& opt){
     }
 
     //Select key when first menu is displayed and option 4 to be selected.
-    if((c == KEY_ENTER || c == 10) && (opt == 3) && !optSelect) {
+    if((c == KEY_ENTER || c == 10) && (opt == 3) && !optSelect && !gameStarted) {
         clear();
         isExit = true;
         return;
     }
 
     //Select key when game menu is displayed and option 1 to be selected.
-    if((c == KEY_ENTER || c == 10) && (opt == 0) && optSelect){
+    if((c == KEY_ENTER || c == 10) && (opt == 0) && optSelect && !gameStarted){
         clear();
         gameStarted = true;
         optSelect = true;
@@ -250,7 +252,7 @@ void keyMovement( int y, int x, int& opt){
     }
 
     //Select key when game menu is displayed and option 4 to be selected.
-    if((c == KEY_ENTER || c == 10) && (opt == 3) && optSelect && !gamePause){
+    if((c == KEY_ENTER || c == 10) && (opt == 3) && optSelect && !gameStarted){
         clear();
         optSelect = false;
         opt = 0;
@@ -263,6 +265,9 @@ void keyMovement( int y, int x, int& opt){
         gamePause = false;
         gameStarted = false;
         opt = 0;
+        saved.clear();
+        mvprintw(0,0, "Cleared!");
+        mvprintw(10, 0, "saved.size() = %zu", saved.size());
         return;
     }
 
@@ -271,6 +276,9 @@ void keyMovement( int y, int x, int& opt){
         gamePause = false;
         gameStarted = true;
         opt = 0;
+        
+        mvprintw(10, 0, "saved.size() = %zu", saved.size());
+        
         printBoard(y,x);
         persistBoard();
         return;
@@ -323,6 +331,7 @@ int main(){
             attron(COLOR_PAIR(3));
             if(countTurn == 9){
                 mvprintw (5,30, "Game Draw");
+                saved.clear();
                 break;
             }
             if(!gamePause){
@@ -334,17 +343,20 @@ int main(){
             if(xwin){
                 mvprintw (5,30, "Player X won");
                 xwin = false;
+                saved.clear();
                 break;
             }
             else if (owin){
                 mvprintw (5,30, "Player O won");
                 owin = false;
+                saved.clear();
                 break;
             }
             attroff(COLOR_PAIR(3));
         }
     }
     curs_set(0);
+    getch();
     refresh();
     endwin();
     return 0;
