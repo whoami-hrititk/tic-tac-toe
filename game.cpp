@@ -169,7 +169,24 @@ void playTurn(int& cordy, int& cordx, int borderUp, int borderDown, int borderLe
     return;
 }
 
+void clearBoard(){
+    board[1][2] = ' ';
+    board[1][6] = ' ';
+    board[1][10] = ' ';
+    board[3][2] = ' ';
+    board[3][6] = ' ';
+    board[3][10] = ' ';
+    board[5][2] = ' ';
+    board[5][6] = ' ';
+    board[5][10] = ' ';
+    board[1][2] = ' ';
+    move(0,0);
+    return;
+}
+
 void printBoard(int y, int x){
+    mvaddch(4,0,board[1][2]);
+    //clear();
     for(int i=0; i<7; i++){
         for(int j=0; j < 13 ;j++){
             mvaddch(y+i,x+j, board[i][j]);
@@ -214,7 +231,7 @@ void showMenu(int y, int x, int opt){
 }
 
 void persistBoard(){
-    for(auto turns: saved){
+    for(auto& turns: saved){
         mvaddch(turns.cordy, turns.cordx, turns.turn);
     }
     refresh();
@@ -266,8 +283,7 @@ void keyMovement( int y, int x, int& opt){
         gameStarted = false;
         opt = 0;
         saved.clear();
-        mvprintw(0,0, "Cleared!");
-        mvprintw(10, 0, "saved.size() = %zu", saved.size());
+        clearBoard();
         return;
     }
 
@@ -276,9 +292,6 @@ void keyMovement( int y, int x, int& opt){
         gamePause = false;
         gameStarted = true;
         opt = 0;
-        
-        mvprintw(10, 0, "saved.size() = %zu", saved.size());
-        
         printBoard(y,x);
         persistBoard();
         return;
